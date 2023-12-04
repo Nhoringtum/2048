@@ -1,0 +1,36 @@
+def ask_int() -> int:
+    while True:
+        value: str = input("Veuillez entrer un nombre : ")
+
+        if value.isdigit():
+            return int(value)
+
+        print("pas un nombre")
+
+def ask_int_in_range(min: int, max: int) -> int:
+    while True:
+        value: int = ask_int()
+        if value < min or value > max:
+            print("N'appartient pas aux bornes\n")
+        else:
+            return value
+
+def reverse_number(x: int, y: int) -> tuple[int, int]:
+    if x > y:
+        numberMemo: int = x
+        x = y
+        y = numberMemo
+        return x, y
+    else:
+        return x, y
+
+def ask_input(authorized_inputs: list [str]) -> str:
+    i: int = 0
+    choice: str = input("").casefold()
+    while i < len(authorized_inputs):
+        if choice == authorized_inputs[i]:
+            return choice
+        i += 1
+        if i == len(authorized_inputs):
+            authorized_inputs = "not valid word"
+            break
