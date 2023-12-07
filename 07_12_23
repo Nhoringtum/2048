@@ -6,6 +6,7 @@ import tools
 Authorized_answer: list[str] = ["z", "q", "s", "d"]
 winningValue: int = 2048
 
+
 # Fonction pour afficher le tableau de jeu
 def displayBoard():
     # Partie grâce à laquelle on pourra plus bas moduler la taille d'affichage du tableau en fonction de la taille des
@@ -33,47 +34,79 @@ def displayBoard():
 
 
 # Fonction pour fusionner une ligne vers la gauche
-# Fonction pour fusionner une ligne dans une direction donnée
-# Fonction pour fusionner une ligne dans une direction donnée
-def mergeLine(line) -> list[int]:
-    merged = []
-    merged_line = [elem for elem in line if elem != 0]  # Supprimer les zéros
-    i = 0
-    while i < len(merged_line) - 1:
-        if merged_line[i] == merged_line[i + 1]:
-            merged_line[i] *= 2
-            merged_line[i + 1] = 0
-            i += 2
-        else:
-            i += 1
-    merged = [elem for elem in merged_line if elem != 0] + [0] * merged_line.count(0)
-    return merged
+def mergeOneRowL(row) -> list[int]:
+    j: int
+    i: int
+    for j in range(boardSize - 1):
+        for i in range(boardSize - 1, 0, -1):
+            if row[i - 1] == 0:
+                row[i - 1] = row[i]
+                row[i] = 0
 
-# Fonction pour fusionner dans une direction donnée
-def merge(board, direction) -> list[list[int]]:
-    if direction == "left":
-        return [mergeLine(row) for row in board]
-    elif direction == "right":
-        return [row[::-1] for row in [mergeLine(row[::-1]) for row in board]]
-    elif direction == "up":
-        transposed_board = transpose(board)
-        return [mergeLine(row) for row in transposed_board]
-    elif direction == "down":
-        transposed_board = transpose(board)
-        merged_board = [row[::-1] for row in [mergeLine(row[::-1]) for row in transposed_board]]
-        return transpose(merged_board)
+    for i in range(boardSize - 1):
+        if row[i] == row[i + 1]:
+            row[i] *= 2
+            row[i + 1] = 0
 
-# Utilisation de merge(board, direction) pour les mouvements
-# Exemple: board = merge(board, "left")
+    for i in range(boardSize - 1, 0, -1):
+        if row[i - 1] == 0:
+            row[i - 1] = row[i]
+            row[i] = 0
+    return row
+
+
+# Fonction pour fusionner le tableau vers la gauche
+def mergeLeft(currentBoard) -> list[[int]]:
+    for i in range(boardSize):
+        currentBoard[i] = mergeOneRowL(currentBoard[i])
+
+    return currentBoard
+
+
+# Fonction pour inverser une ligne
+def reverse(row) -> list[int]:
+    new: list = []
+    for i in range(boardSize - 1, -1, -1):
+        new.append(row[i])
+    return new
+
+
+# Fonction pour fusionner le tableau vers la droite
+def mergeRight(currentBoard) -> list[[int]]:
+    for i in range(boardSize):
+        currentBoard[i] = reverse(currentBoard[i])
+        currentBoard[i] = mergeOneRowL(currentBoard[i])
+        currentBoard[i] = reverse(currentBoard[i])
+
+    return currentBoard
+
 
 # Fonction pour transposer le tableau
-def transpose(currentBoard) -> list[int]:
+def transpose(currentBoard) -> list[[int]]:
     for j in range(boardSize):
         for i in range(j, boardSize):
             if not i == j:
                 temp: tuple[int, int] = currentBoard[j][i]
                 currentBoard[j][i] = currentBoard[i][j]
                 currentBoard[i][j] = temp
+    return currentBoard
+
+
+# Fonction pour fusionner le tableau vers le haut
+def mergeUp(currentBoard) -> list[[int]]:
+    currentBoard = transpose(currentBoard)
+    currentBoard = mergeLeft(currentBoard)
+    currentBoard = transpose(currentBoard)
+
+    return currentBoard
+
+
+# Fonction pour fusionner le tableau vers le bas
+def mergeDown(currentBoard) -> list[[int]]:
+    currentBoard = transpose(currentBoard)
+    currentBoard = mergeRight(currentBoard)
+    currentBoard = transpose(currentBoard)
+
     return currentBoard
 
 
@@ -86,13 +119,15 @@ def pickNewValue() -> int:
 
 
 # Fonction pour ajouter une nouvelle valeur au tableau
-# A modif
 def addNewValue():
-    emptyCells = [(i, j) for i in range(boardSize) for j in range(boardSize) if board[i][j] == 0]
-    if emptyCells:
-        rowNum, colNum = random.choice(emptyCells)
-        board[rowNum][colNum] = pickNewValue()
+    rowNum = random.randint(0, boardSize - 1)
+    colNum = random.randint(0, boardSize - 1)
 
+    while not board[rowNum][colNum] == 0:
+        rowNum = random.randint(0, boardSize - 1)
+        colNum = random.randint(0, boardSize - 1)
+
+    board[rowNum][colNum] = pickNewValue()
 
 
 # Fonction pour vérifier si le joueur a gagné
@@ -104,25 +139,20 @@ def won() -> bool:
 
 
 # Fonction pour vérifier s'il n'y a plus de mouvements possibles
-# A modif (check si aucune case vide et si aucun même chiffre autour de n'importe quelle case)
 def noMoves(currentBoard) -> bool:
-    for row in range(currentBoard):
-        for col in range(currentBoard):
+    for row in range(len(currentBoard)):
+        for col in range(len(currentBoard)):
             if currentBoard[row][col] == 0:
                 return False
-            
+
             # Vérification des cases voisines pour les mouvements possibles
             if (col < len(currentBoard) - 1 and currentBoard[row][col] == currentBoard[row][col + 1]) or \
-               (col > 0 and currentBoard[row][col] == currentBoard[row][col - 1]) or \
-               (row < len(currentBoard) - 1 and currentBoard[row][col] == currentBoard[row + 1][col]) or \
-               (row > 0 and currentBoard[row][col] == currentBoard[row - 1][col]):
+                    (col > 0 and currentBoard[row][col] == currentBoard[row][col - 1]) or \
+                    (row < len(currentBoard) - 1 and currentBoard[row][col] == currentBoard[row + 1][col]) or \
+                    (row > 0 and currentBoard[row][col] == currentBoard[row - 1][col]):
                 return False
-            
+
     return True
-
-
-
-
 
 
 print("Bienvenue au jeu 2048, le but est d'atteindre une tuile de 2048. Pour ce faire, vous devez fusionner les tuiles en les bougeant de chaques côtés. Elles verront leur valeur doubler. Attention 1 tuile apparait à chaque coup. Bon jeu !")
@@ -169,13 +199,13 @@ while not gameOver:
 
     # Mouvement joueur
     if move == "z":
-        board = merge(board, "up")
+        board = mergeUp(board)
     elif move == "q":
-        board = merge(board, "left")
+        board = mergeLeft(board)
     elif move == "s":
-        board = merge(board, "down")
+        board = mergeDown(board)
     elif move == "d":
-        board = merge(board, "right")
+        board = mergeRight(board)
     else:
         validInput = False
 
@@ -200,6 +230,5 @@ while not gameOver:
                 displayBoard()
                 # Vérification s'il n'y a plus de mouvements possibles
                 if noMoves(board):
-                    print("Partie terminée, aucun mouvement possible !")
+                    print("perdu, plus de mouvements")
                     gameOver = True
-
