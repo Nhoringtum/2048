@@ -1,110 +1,232 @@
-import os
-import time
 import random
+import copy
+import os
 import tools
-# Recap de truc à faire : finir le systeme avec la liste available (supprimer les index disponibles à chaque mouvement)
-# faire en sorte de décaler les tuiles dans la direction demandé du joueur mais en prenant en compte si l'index existe. Puis prog la fusion des tuiles (se passe avant le décalage)
-def GetGrid(length: int) -> list[list[str]]:
-    grid: list[list[str]] = []
-    i: int = 0
-    while i < length:
-        line: list[str] = []
-        j: int = 0
-        while j < length:
-            line.append("")
-            j += 1
 
-        grid.append(line)
-        i += 1
+Authorized_answer: list[str] = ["z", "q", "s", "d"]
+winningValue: int = 2048
 
-    return grid
+# Fonction pour afficher le tableau de jeu
+def displayBoard():
+    # Partie grâce à laquelle on pourra plus bas moduler la taille d'affichage du tableau en fonction de la taille des
+    # nombres
+    largest: int = board[0][0]
+    element: int
+    for row in board:
+        for element in row:
+            if element > largest:
+                largest = element
 
-#grid: list[list[str]] = \
-#[
- #   ["","","",""],
- #   ["","","",""],
-#    ["","","",""],
-#    ["","","",""],
-#]
+    numSpaces: int = len(str(largest))
 
+    # Affichage du tableau
+    for row in board:
+        currentRow: str = "|"
+        for element in row:
+            if element == 0:
+                currentRow += " " * numSpaces + "|"
+            else:
+                currentRow += (" " * (numSpaces - len(str(element)))) + str(element) + "|"
 
-
-def GetAvailableTiles(grid: list[list[str]]) -> list[tuple[int, int]]:
-    available_tiles: list[tuple[int, int]] = []
-    
-    i: int = 0
-    while i < len(grid):
-        j: int = 0
-        while j < len(grid[i]):
-            if(grid[i][j] == ""):
-                available_tiles.append((i, j))
-            j = j + 1
-        i = i + 1
-
-    return available_tiles 
+        print(currentRow)
+    print()
 
 
-# available.remove(available_coordinate)
+# Fonction pour fusionner une ligne vers la gauche
+def mergeOneRowL(row) -> list[int]:
+    j: int
+    i: int
+    for j in range(boardSize - 1):
+        for i in range(boardSize - 1, 0, -1):
+            if row[i - 1] == 0:
+                row[i - 1] = row[i]
+                row[i] = 0
 
-def SpawnTiles(grid, length, x, y) -> tuple[int, int, list[tuple[int,int]]]:
-    available_tiles: list[tuple[int, int]] = GetAvailableTiles(grid)
+    for i in range(boardSize - 1):
+        if row[i] == row[i + 1]:
+            row[i] *= 2
+            row[i + 1] = 0
 
-    random_index = random.randint(0, len(available_tiles) - 1)
+    for i in range(boardSize - 1, 0, -1):
+        if row[i - 1] == 0:
+            row[i - 1] = row[i]
+            row[i] = 0
+    return row
 
-    i, j = available_tiles[random_index]
 
-    dropRate: list[float] = [x, y]
-    tiles: list[int] = [2, 4]
-    randomTiles: float = random.random()
-    if randomTiles <= dropRate[0]:
-        grid[i][j] = tiles[0]
-        return i, j, available_tiles
+# Fonction pour fusionner le tableau vers la gauche
+def mergeLeft(currentBoard) -> list[[int]]:
+    for i in range(boardSize):
+        currentBoard[i] = mergeOneRowL(currentBoard[i])
+
+    return currentBoard
+
+
+# Fonction pour inverser une ligne
+def reverse(row) -> list[int]:
+    new: list = []
+    for i in range(boardSize - 1, -1, -1):
+        new.append(row[i])
+    return new
+
+
+# Fonction pour fusionner le tableau vers la droite
+def mergeRight(currentBoard) -> list[[int]]:
+    for i in range(boardSize):
+        currentBoard[i] = reverse(currentBoard[i])
+        currentBoard[i] = mergeOneRowL(currentBoard[i])
+        currentBoard[i] = reverse(currentBoard[i])
+
+    return currentBoard
+
+
+# Fonction pour transposer le tableau
+def transpose(currentBoard) -> list[[int]]:
+    for j in range(boardSize):
+        for i in range(j, boardSize):
+            if not i == j:
+                temp: tuple[int, int] = currentBoard[j][i]
+                currentBoard[j][i] = currentBoard[i][j]
+                currentBoard[i][j] = temp
+    return currentBoard
+
+
+# Fonction pour fusionner le tableau vers le haut
+def mergeUp(currentBoard) -> list[[int]]:
+    currentBoard = transpose(currentBoard)
+    currentBoard = mergeLeft(currentBoard)
+    currentBoard = transpose(currentBoard)
+
+    return currentBoard
+
+
+# Fonction pour fusionner le tableau vers le bas
+def mergeDown(currentBoard) -> list[[int]]:
+    currentBoard = transpose(currentBoard)
+    currentBoard = mergeRight(currentBoard)
+    currentBoard = transpose(currentBoard)
+
+    return currentBoard
+
+
+# Fonction pour choisir une nouvelle valeur (2 ou 4)
+def pickNewValue() -> int:
+    if random.randint(1, 8) == 1:
+        return 4
     else:
-        grid[i][j] = tiles[1]
-        return i, j, available_tiles
-
-def MoveTiles(available_tiles: list[tuple[int,int]], grid: list[list[str]], input: str):
-    available_tiles
-    if input == "z":
-        if available_tiles == []:
-            print("ok")
-            print(SpawnX, SpawnY)
-            #grid[SpawnX][SpawnY] = [""]
-        print(input)
-    elif input == "q":
-        print(input)
-    elif input == "s":
-        print(input)
-    elif input == "d":
-        print(input)
+        return 2
 
 
-keyAllowed: list[str] = ["z", "q", "s", "d"]
+# Fonction pour ajouter une nouvelle valeur au tableau
+def addNewValue():
+    rowNum = random.randint(0, boardSize - 1)
+    colNum = random.randint(0, boardSize - 1)
+
+    while not board[rowNum][colNum] == 0:
+        rowNum = random.randint(0, boardSize - 1)
+        colNum = random.randint(0, boardSize - 1)
+
+    board[rowNum][colNum] = pickNewValue()
 
 
+# Fonction pour vérifier si le joueur a gagné
+def won() -> bool:
+    for row in board:
+        if winningValue in row:
+            return True
+    return False
 
-def PlayGame():
-    print("Taille de la grille : ")
-    GRID_LENGTH: int = tools.ask_int()
-    print("Proba pour 2")
-    proba_2: float = tools.ask_proba()
-    print("Proba pour 4")
-    proba_4: float = tools.ask_proba()
-    grid: list[list[str]] = GetGrid(GRID_LENGTH)
 
-    while True:
-        print("ahhhhhhh")
-    #   available: list[tuple[int,int]] = AvailableGrid(grid)
-        SpawnX, SpawnY, available_tiles = SpawnTiles(grid, GRID_LENGTH, proba_2, proba_4)
-        i: int = 0
-        while i < GRID_LENGTH:
-            print(grid[i])
-            i += 1
-        print("Entrez une direction avec Z haut, Q gauche, S bas et D droite")
-        key: str = tools.ask_input(keyAllowed)
-        MoveTiles(available_tiles, grid, key)
-            
-        # time.sleep(2.0)
-        # os.system('cls')
+# Fonction pour vérifier s'il n'y a plus de mouvements possibles
+def noMoves() -> bool:
+    tempBoard1: list[list[int]] = copy.deepcopy(board)
+    tempBoard2: list[list[int]] = copy.deepcopy(board)
 
-PlayGame()
+    tempBoard1 = mergeDown(tempBoard1)
+    if tempBoard1 == tempBoard2:
+        tempBoard1 = mergeUp(tempBoard1)
+        if tempBoard1 == tempBoard2:
+            tempBoard1 = mergeLeft(tempBoard1)
+            if tempBoard1 == tempBoard2:
+                tempBoard1 = mergeRight(tempBoard1)
+                if tempBoard1 == tempBoard2:
+                    return True
+    return False
+
+print("Bienvenue au jeu 2048, le but est d'atteindre une tuile de 2048. Pour ce faire, vous devez fusionner les tuiles en les bougeant de chaques côtés. Elles verront leur valeur doubler. Attention 1 tuile apparait à chaque coup. Bon jeu !")
+
+# Taille du tableau
+boardSize: int = tools.ask_int()
+
+# Initialisation du tableau
+board: list[list[int]] = []
+for i in range(boardSize):
+    row = []
+    for j in range(boardSize):
+        row.append(0)
+    board.append(row)
+
+# Placement de deux valeurs aléatoires au début du jeu
+numNeeded: int = 2
+while numNeeded > 0:
+    rowNum: int = random.randint(0, boardSize - 1)
+    colNum: int = random.randint(0, boardSize - 1)
+
+    if board[rowNum][colNum] == 0:
+        board[rowNum][colNum] = pickNewValue()
+        numNeeded -= 1
+
+# Affichage du tableau initial
+displayBoard()
+
+# Variable pour indiquer si le jeu est terminé
+gameOver: bool = False
+
+# Boucle principale du jeu
+while not gameOver:
+
+    # Demande du mouvement au joueur
+    print("Z pour haut, Q pour gauche, S pour bas, D pour droite : ")
+    move: str = tools.ask_input(Authorized_answer)
+
+    # Validation du mouvement
+    validInput: bool = True
+
+    # Création d'une copie temporaire du tableau
+    tempBoard: list[list[int]] = copy.deepcopy(board)
+
+    # Mouvement joueur
+    if move == "z":
+        board = mergeUp(board)
+    elif move == "q":
+        board = mergeLeft(board)
+    elif move == "s":
+        board = mergeDown(board)
+    elif move == "d":
+        board = mergeRight(board)
+    else:
+        validInput = False
+
+    # Gestion du cas d'entrée invalide
+    if not validInput:
+        print("Vous avez entré une commande erronnée, veuillez recommencer")
+    else:
+        # Vérification des changements dans le tableau
+        if board == tempBoard:
+            print("Aucun coups valables dans cette direction")
+        else:
+            # Effacement de l'écran (Windows seulement, ajustez pour d'autres systèmes)
+            os.system('cls')
+            # Vérification de la victoire
+            if won():
+                displayBoard()
+                print("Gagné")
+                gameOver = True
+            else:
+                # Ajout d'une nouvelle valeur et affichage du tableau
+                addNewValue()
+                displayBoard()
+                # Vérification s'il n'y a plus de mouvements possibles
+                if noMoves():
+                    print("perdu, plus de mouvements")
+                    gameOver = True
