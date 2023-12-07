@@ -1,0 +1,205 @@
+import random
+import copy
+import os
+import tools
+
+Authorized_answer: list[str] = ["z", "q", "s", "d"]
+winningValue: int = 2048
+
+# Fonction pour afficher le tableau de jeu
+def displayBoard():
+    # Partie grâce à laquelle on pourra plus bas moduler la taille d'affichage du tableau en fonction de la taille des
+    # nombres
+    largest: int = board[0][0]
+    element: int
+    for row in board:
+        for element in row:
+            if element > largest:
+                largest = element
+
+    numSpaces: int = len(str(largest))
+
+    # Affichage du tableau
+    for row in board:
+        currentRow: str = "|"
+        for element in row:
+            if element == 0:
+                currentRow += " " * numSpaces + "|"
+            else:
+                currentRow += (" " * (numSpaces - len(str(element)))) + str(element) + "|"
+
+        print(currentRow)
+    print()
+
+
+# Fonction pour fusionner une ligne vers la gauche
+# Fonction pour fusionner une ligne dans une direction donnée
+# Fonction pour fusionner une ligne dans une direction donnée
+def mergeLine(line) -> list[int]:
+    merged = []
+    merged_line = [elem for elem in line if elem != 0]  # Supprimer les zéros
+    i = 0
+    while i < len(merged_line) - 1:
+        if merged_line[i] == merged_line[i + 1]:
+            merged_line[i] *= 2
+            merged_line[i + 1] = 0
+            i += 2
+        else:
+            i += 1
+    merged = [elem for elem in merged_line if elem != 0] + [0] * merged_line.count(0)
+    return merged
+
+# Fonction pour fusionner dans une direction donnée
+def merge(board, direction) -> list[list[int]]:
+    if direction == "left":
+        return [mergeLine(row) for row in board]
+    elif direction == "right":
+        return [row[::-1] for row in [mergeLine(row[::-1]) for row in board]]
+    elif direction == "up":
+        transposed_board = transpose(board)
+        return [mergeLine(row) for row in transposed_board]
+    elif direction == "down":
+        transposed_board = transpose(board)
+        merged_board = [row[::-1] for row in [mergeLine(row[::-1]) for row in transposed_board]]
+        return transpose(merged_board)
+
+# Utilisation de merge(board, direction) pour les mouvements
+# Exemple: board = merge(board, "left")
+
+# Fonction pour transposer le tableau
+def transpose(currentBoard) -> list[int]:
+    for j in range(boardSize):
+        for i in range(j, boardSize):
+            if not i == j:
+                temp: tuple[int, int] = currentBoard[j][i]
+                currentBoard[j][i] = currentBoard[i][j]
+                currentBoard[i][j] = temp
+    return currentBoard
+
+
+# Fonction pour choisir une nouvelle valeur (2 ou 4)
+def pickNewValue() -> int:
+    if random.randint(1, 8) == 1:
+        return 4
+    else:
+        return 2
+
+
+# Fonction pour ajouter une nouvelle valeur au tableau
+# A modif
+def addNewValue():
+    emptyCells = [(i, j) for i in range(boardSize) for j in range(boardSize) if board[i][j] == 0]
+    if emptyCells:
+        rowNum, colNum = random.choice(emptyCells)
+        board[rowNum][colNum] = pickNewValue()
+
+
+
+# Fonction pour vérifier si le joueur a gagné
+def won() -> bool:
+    for row in board:
+        if winningValue in row:
+            return True
+    return False
+
+
+# Fonction pour vérifier s'il n'y a plus de mouvements possibles
+# A modif (check si aucune case vide et si aucun même chiffre autour de n'importe quelle case)
+def noMoves(currentBoard) -> bool:
+    for row in range(currentBoard):
+        for col in range(currentBoard):
+            if currentBoard[row][col] == 0:
+                return False
+            
+            # Vérification des cases voisines pour les mouvements possibles
+            if (col < len(currentBoard) - 1 and currentBoard[row][col] == currentBoard[row][col + 1]) or \
+               (col > 0 and currentBoard[row][col] == currentBoard[row][col - 1]) or \
+               (row < len(currentBoard) - 1 and currentBoard[row][col] == currentBoard[row + 1][col]) or \
+               (row > 0 and currentBoard[row][col] == currentBoard[row - 1][col]):
+                return False
+            
+    return True
+
+
+
+
+
+
+print("Bienvenue au jeu 2048, le but est d'atteindre une tuile de 2048. Pour ce faire, vous devez fusionner les tuiles en les bougeant de chaques côtés. Elles verront leur valeur doubler. Attention 1 tuile apparait à chaque coup. Bon jeu !")
+
+# Taille du tableau
+boardSize: int = tools.ask_int()
+
+# Initialisation du tableau
+board: list[list[int]] = []
+for i in range(boardSize):
+    row = []
+    for j in range(boardSize):
+        row.append(0)
+    board.append(row)
+
+# Placement de deux valeurs aléatoires au début du jeu
+numNeeded: int = 2
+while numNeeded > 0:
+    rowNum: int = random.randint(0, boardSize - 1)
+    colNum: int = random.randint(0, boardSize - 1)
+
+    if board[rowNum][colNum] == 0:
+        board[rowNum][colNum] = pickNewValue()
+        numNeeded -= 1
+
+# Affichage du tableau initial
+displayBoard()
+
+# Variable pour indiquer si le jeu est terminé
+gameOver: bool = False
+
+# Boucle principale du jeu
+while not gameOver:
+
+    # Demande du mouvement au joueur
+    print("Z pour haut, Q pour gauche, S pour bas, D pour droite : ")
+    move: str = tools.ask_input(Authorized_answer)
+
+    # Validation du mouvement
+    validInput: bool = True
+
+    # Création d'une copie temporaire du tableau
+    tempBoard: list[list[int]] = copy.deepcopy(board)
+
+    # Mouvement joueur
+    if move == "z":
+        board = merge(board, "up")
+    elif move == "q":
+        board = merge(board, "left")
+    elif move == "s":
+        board = merge(board, "down")
+    elif move == "d":
+        board = merge(board, "right")
+    else:
+        validInput = False
+
+    # Gestion du cas d'entrée invalide
+    if not validInput:
+        print("Vous avez entré une commande erronnée, veuillez recommencer")
+    else:
+        # Vérification des changements dans le tableau
+        if board == tempBoard:
+            print("Aucun coups valables dans cette direction")
+        else:
+            # Effacement de l'écran (Windows seulement, ajustez pour d'autres systèmes)
+            os.system('cls')
+            # Vérification de la victoire
+            if won():
+                displayBoard()
+                print("Gagné")
+                gameOver = True
+            else:
+                # Ajout d'une nouvelle valeur et affichage du tableau
+                addNewValue()
+                displayBoard()
+                # Vérification s'il n'y a plus de mouvements possibles
+                if noMoves(board):
+                    print("Partie terminée, aucun mouvement possible !")
+                    gameOver = True
+
