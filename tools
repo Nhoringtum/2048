@@ -1,36 +1,31 @@
+PlayKey = ["Z", "Q", "S", "D"]
+
 def ask_int() -> int:
     while True:
-        value: str = input("Veuillez entrer un nombre : ")
+        value: str = input("Taille de la grille (Original = 4x4) : ")
 
         if value.isdigit():
             return int(value)
 
         print("pas un nombre")
 
-def ask_int_in_range(min: int, max: int) -> int:
+def ask_proba() -> int:
     while True:
-        value: int = ask_int()
-        if value < min or value > max:
-            print("N'appartient pas aux bornes\n")
-        else:
-            return value
+        value: str = input("Probabilité d'un spawn de 4 (0 - 10) (Original = 1): ")
 
-def reverse_number(x: int, y: int) -> tuple[int, int]:
-    if x > y:
-        numberMemo: int = x
-        x = y
-        y = numberMemo
-        return x, y
-    else:
-        return x, y
+        if value.isdigit():
+            value_int = int(value)
+            if 0 <= value_int <= 10:
+                return value_int
 
-def ask_input(authorized_inputs: list [str]) -> str:
-    i: int = 0
-    choice: str = input("").casefold()
-    while i < len(authorized_inputs):
-        if choice == authorized_inputs[i]:
-            return choice
-        i += 1
-        if i == len(authorized_inputs):
-            authorized_inputs = "not valid word"
-            break
+        print("Erreur: Veuillez entrer un nombre entre 0 et 10.")
+
+def AskInput() -> str:
+    while True:
+        value: str = input("Jouer (Z Q S D) = ")
+
+        if value in PlayKey:
+            return str(value)
+
+        print("Veuillez rentré Z Q S D")
+
